@@ -1,8 +1,11 @@
 <?php
 
+\yii\widgets\Pjax::begin(['timeout' => 3000]);
 /* @var object $addTaskForm */
 
 /* @var object $userInfo */
+use GuzzleHttp\Client;
+use yii\widgets\ActiveForm;
 
 $coordinates = [];
 $coordinates['lat'] = unpack('x/x/x/x/corder/Ltype/dlat/dlon', $userInfo->city->coordinates)['lat'];
@@ -12,7 +15,10 @@ $coordinates['lon'] = unpack(
 )['lon'];
 
 
-use yii\widgets\ActiveForm;
+
+
+
+
 
 
 ?>
@@ -31,8 +37,6 @@ use yii\widgets\ActiveForm;
                     controls: [],
                 },
             );
-        console.log(myMap)
-
         // Слушаем клик на карте.
         myMap.events.add('click', function (e) {
             var coords = e.get('coords');
@@ -81,7 +85,7 @@ use yii\widgets\ActiveForm;
                         // В качестве контента балуна задаем строку с адресом объекта.
                         balloonContent: firstGeoObject.getAddressLine()
                     });
-                document.getElementById('address').value = firstGeoObject.getAddressLine();
+                document.getElementById('autoComplete').value = firstGeoObject.getAddressLine();
 
             });
         }
@@ -96,9 +100,23 @@ use yii\widgets\ActiveForm;
 
         let findBtn = document.getElementById('btn-address')
         findBtn.onclick = function () {
-            myMap.controls.add(searchControl);
-            searchControl.search(document.getElementById('address').value);
+            alert('нажал')
+            <?php $client = new Client();
+            $response = $client->request('get', 'https://geocode-maps.yandex.ru/1.x/', [
+                'query' => [
+                    'geocode' => 'Тверская+6',
+                    'apikey'  => 'e666f398-c983-4bde-8f14-e3fec900592a',
+                    'format' => 'json',
+                    'lang' => 'ru_RU',
+                ],
+            ]);
+            $content = $response->getBody()->getContents();
+            $response_data = json_decode($content,true);
+            $addressList = [];
+            foreach ($response_data['response']['GeoObjectCollection']['featureMember'] as $key => $value){
+                $addressList[] = $value['GeoObject']['metaDataProperty']['GeocoderMetaData']['text'];
 
+            } ?>
         }
 
     }
@@ -145,6 +163,39 @@ use yii\widgets\ActiveForm;
             <button type="button" class="btn-address" id="btn-address">Найти</button>
         </form>
 
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css">
+        <div class="autoComplete_wrapper">
+            <input id="autoComplete" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off"
+                   autocapitalize="off" style="width: 600px">
+        </div>
+
+
+        <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
+        <script>
+            const autoCompleteJS = new autoComplete({
+                placeHolder: "Укажите Адрес",
+                data: {
+                    src: [
+                        'test','wasd'
+                    ],
+                    cache: true,
+                },
+                resultItem: {
+                    highlight: true
+                },
+                events: {
+                    input: {
+                        selection: (event) => {
+                            const selection = event.detail.selection.value;
+                            autoCompleteJS.input.value = selection;
+                        }
+                    }
+                }
+            });
+
+        </script>
+
         <?= $form->field($addTaskForm, 'files[]')->fileInput(['multiple' => true]) ?>
         <?= \yii\helpers\Html::submitButton('опубликовать', ['class' => 'button button--blue']); ?>
         <?php
@@ -154,4 +205,7 @@ use yii\widgets\ActiveForm;
 
 
 </main>
+<?php var_dump($addressList[0]); ?>
 
+<?php
+\yii\widgets\Pjax::end(); ?>

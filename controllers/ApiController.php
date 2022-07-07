@@ -2,33 +2,52 @@
 
 namespace app\controllers;
 
-use app\models\Cities;
+use DOMDocument;
 use GuzzleHttp\Client;
-use Yii;
+
 use yii\web\Controller;
 
 class ApiController extends Controller
 {
     public function actionIndex()
     {
-        $city = Cities::find()->where("id = 345")->one();
-
-
-
-        $vkId = "80834767";
-        $accessToken
-            = 'vk1.a.K7_RMET2TA9hfTgH0hH3yz7ZmOTTfwVazyqORVnipdi1Zq0mFOCCrrPYlBFC_ffNFsng0WxZOeAKp0-6TPwaQ2PE-Y03qJbRBFvxcuUGuH_dORPfeVOa3zLG03z2KDaWTpuEz6FWbjtEFuxkSeWn6qLaDtjo4xokLmv65v0RxbCyhP8qcgItAl0TTiv_Hh0c';
-        $client = new Client(['base_uri' => 'https://api.vk.com/method/']);
-        $response = $client->request('GET', 'users.get', [
+        $client = new Client();
+        $response = $client->request('get', 'https://geocode-maps.yandex.ru/1.x/', [
             'query' => [
-                'user_id' => "$vkId",
-                'v' => '5.131',
-                'access_token' => "$accessToken",
+                'geocode' => 'Тверская+6',
+                'apikey'  => 'e666f398-c983-4bde-8f14-e3fec900592a',
+                'lang'    => 'ru_RU',
             ],
         ]);
         $content = $response->getBody()->getContents();
-        $response_data = json_decode($content, true);
-        var_dump($response_data);
-    }
+
+
+        $doc = new DOMDocument;
+        $doc->preserveWhiteSpace = false;
+
+        $doc->load('book.xml');
+
+        $xpath = new DOMXPath($doc);
+
+        $tbody = $doc->getElementsByTagName('tbody')->item(0);
+
+
+// запрос относительно узла tbody
+        $query = 'row/entry[. = "en"]';
+
+        $entries = $xpath->query($query, $tbody);
+
+        foreach ($entries as $entry) {
+            echo "Найдена книга {$entry->previousSibling->previousSibling->nodeValue}," .
+                " автор {$entry->previousSibling->nodeValue}\n";
+        }
+//        $response_data = json_decode($content, true);
+//        $adressList = [];
+//        foreach ($response_data['response']['GeoObjectCollection']['featureMember'] as $key => $value) {
+//            $adressList[] = $value['GeoObject']['metaDataProperty']['GeocoderMetaData']['text'];
+        }
+
+
+
 
 }
